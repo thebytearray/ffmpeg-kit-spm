@@ -1,11 +1,11 @@
 #!/bin/sh
 set -e
 
-FFMPEG_KIT_TAG="min.v5.1.2.6"
+FFMPEG_KIT_TAG="${FFMPEG_KIT_TAG:-full-gpl.v5.1.2.6}"
 FFMPEG_KIT_CHECKOUT="origin/develop"
 #FFMPEG_KIT_CHECKOUT="origin/tags/$FFMPEG_KIT_TAG"
 
-FFMPEG_KIT_REPO="https://github.com/tylerjonesio/ffmpeg-kit"
+FFMPEG_KIT_REPO="https://github.com/thebytearray/ffmpeg-kit"
 WORK_DIR=".tmp/ffmpeg-kit"
 
 if [[ ! -d $WORK_DIR ]]; then
@@ -23,14 +23,14 @@ git fetch --tags
 git checkout $FFMPEG_KIT_CHECKOUT
 
 echo "Install build dependencies..."
-brew install autoconf automake libtool pkg-config curl git doxygen nasm bison wget gettext gh
+brew install autoconf automake libtool pkg-config curl git doxygen nasm cmake gcc gperf texinfo yasm bison autogen wget gettext meson ninja ragel groff gtk-doc libtasn1 gh
 
 echo "Building for iOS..."
-./ios.sh --enable-ios-audiotoolbox --enable-ios-avfoundation --enable-ios-videotoolbox --enable-ios-zlib --enable-ios-bzip2 --no-bitcode --enable-gmp --enable-gnutls -x
+PATH="/usr/local/opt/bison/bin:$PATH" XML_CATALOG_FILES="/usr/local/etc/xml/catalog" ./ios.sh -x --full --enable-gpl --disable-lib-srt --disable-lib-gnutls
 echo "Building for tvOS..."
-./tvos.sh --enable-tvos-audiotoolbox --enable-tvos-videotoolbox --enable-tvos-zlib --enable-tvos-bzip2 --no-bitcode --enable-gmp --enable-gnutls -x
+PATH="/usr/local/opt/bison/bin:$PATH" XML_CATALOG_FILES="/usr/local/etc/xml/catalog" ./tvos.sh -x --full --enable-gpl --disable-lib-srt --disable-lib-gnutls
 echo "Building for macOS..."
-./macos.sh --enable-macos-audiotoolbox --enable-macos-avfoundation --enable-macos-bzip2 --enable-macos-videotoolbox --enable-macos-zlib --enable-macos-coreimage --enable-macos-opencl --enable-macos-opengl --enable-gmp --enable-gnutls -x
+PATH="/usr/local/opt/bison/bin:$PATH" XML_CATALOG_FILES="/usr/local/etc/xml/catalog" ./macos.sh -x --full --enable-gpl --disable-lib-srt --disable-lib-gnutls
 echo "Building for watchOS..."
 #./watchos.sh --enable-watchos-zlib --enable-watchos-bzip2 --no-bitcode --enable-gmp --enable-gnutls -x
 

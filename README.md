@@ -1,20 +1,17 @@
 # FFmpegKit SPM
 
-> [!WARNING]  
-> Since the upstream [FFmpegKit](https://github.com/arthenica/ffmpeg-kit) project has been retired, this one has been retired as well.
-
-This is a Swift Package Manager compatible version of [FFmpegKit](https://github.com/arthenica/ffmpeg-kit). 
-It distributes and bundles the ffmpeg-kit-https version for iOS, macOS and tvOS as a single xcframework. 
+This is a Swift Package Manager compatible version of [FFmpegKit](https://github.com/thebytearray/ffmpeg-kit).
+It distributes and bundles the ffmpeg-kit full-gpl version for iOS, macOS and tvOS as XCFrameworks.
 
 ### Installation
-Add this repo to as a Swift Package dependency to your project
+Add this repo as a Swift Package dependency to your project
 ```
-https://github.com/tylerjonesio/ffmpeg-kit-spm
+https://github.com/thebytearray/ffmpeg-kit-spm
 ```
 
-If using this in a swift package, add this repo as a dependency.
+If using this in a Swift package, add this repo as a dependency.
 ```
-.package(url: "https://github.com/tylerjonesio/ffmpeg-kit-spm/", .upToNextMajor(from: "5.1.0"))
+.package(url: "https://github.com/thebytearray/ffmpeg-kit-spm/", .upToNextMajor(from: "5.1.0"))
 ```
 
 ### Usage
@@ -26,4 +23,4 @@ See the [FFmpegKit wiki](https://github.com/arthenica/ffmpeg-kit/tree/main/apple
 _For using FFmpeg directly, see the [FFmpeg documentation](https://trac.ffmpeg.org/wiki/Using%20libav*) here_
 
 ### Building
-If you would like to build your own xcframework binaries run the `build.sh` script on a macOS machine. 
+Run the `build.sh` script on a macOS machine, or use the [GitHub Actions workflow](.github/workflows/build-spm-release.yml): Actions → "Build and Publish SPM Release" → Run workflow → enter a tag (e.g. `full-gpl.v6.0.0`). 
