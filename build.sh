@@ -23,7 +23,7 @@ git fetch --tags
 git checkout $FFMPEG_KIT_CHECKOUT
 
 echo "Install build dependencies..."
-brew install autoconf automake libtool pkg-config curl git doxygen nasm cmake gcc gperf texinfo yasm bison autogen wget gettext meson ninja ragel groff gtk-doc libtasn1 gh --overwrite
+brew install autoconf automake libtool pkg-config curl git doxygen nasm cmake gcc gperf texinfo yasm bison autogen wget gettext meson ninja ragel groff gtk-doc docbook docbook-xsl libtasn1 gh --overwrite
 
 echo "Building for iOS..."
 PATH="/usr/local/opt/bison/bin:$PATH" XML_CATALOG_FILES="/usr/local/etc/xml/catalog" ./ios.sh -x --full --enable-gpl --disable-lib-srt --disable-lib-gnutls --disable-lib-lame

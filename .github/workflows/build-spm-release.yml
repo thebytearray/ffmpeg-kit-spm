@@ -34,7 +34,7 @@ jobs:
       - name: Set up Xcode
         run: echo "export DEVELOPER_DIR=$(xcode-select -p)" > ~/.xcode.for.ffmpeg.kit.sh
       - name: Install dependencies
-        run: brew install autoconf automake libtool pkg-config curl git doxygen nasm cmake gcc gperf texinfo yasm bison autogen wget gettext meson ninja ragel groff gtk-doc libtasn1 gh --overwrite
+        run: brew install autoconf automake libtool pkg-config curl git doxygen nasm cmake gcc gperf texinfo yasm bison autogen wget gettext meson ninja ragel groff gtk-doc docbook docbook-xsl libtasn1 gh --overwrite
       - name: Build and publish
         env:
           FFMPEG_KIT_TAG: ${{ inputs.tag }}
