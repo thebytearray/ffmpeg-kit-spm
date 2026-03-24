@@ -22,15 +22,46 @@ git fetch
 git fetch --tags
 git checkout $FFMPEG_KIT_CHECKOUT
 
+# CMake 4.x (Homebrew): x265 vendored CMakeLists used OLD policies CMP0025/CMP0054 (unsupported)
+# and had project() before cmake_minimum_required(). See patches/ffmpeg-kit-x265-cmake.patch.
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+X265_CMAKE_PATCH="${SCRIPT_DIR}/patches/ffmpeg-kit-x265-cmake.patch"
+if [ -f "${X265_CMAKE_PATCH}" ] && [ -f tools/patch/cmake/x265/CMakeLists.txt ]; then
+  if grep -q 'cmake_policy(SET CMP0025 OLD)' tools/patch/cmake/x265/CMakeLists.txt; then
+    echo "Applying x265 CMake patch for CMake 4.x..."
+    patch -p1 --fuzz=0 < "${X265_CMAKE_PATCH}" || exit 1
+  fi
+fi
+
 echo "Install build dependencies..."
 brew install autoconf automake libtool pkg-config curl git doxygen nasm cmake gcc gperf texinfo yasm bison autogen wget gettext meson ninja ragel groff gtk-doc docbook docbook-xsl libtasn1 gh --overwrite
 
+BREW_PREFIX="$(brew --prefix 2>/dev/null || true)"
+BISON_BIN=""
+if [ -n "${BREW_PREFIX}" ] && [ -d "${BREW_PREFIX}/opt/bison/bin" ]; then
+  BISON_BIN="${BREW_PREFIX}/opt/bison/bin"
+elif [ -d /usr/local/opt/bison/bin ]; then
+  BISON_BIN="/usr/local/opt/bison/bin"
+fi
+XML_CATALOG=""
+if [ -n "${BREW_PREFIX}" ] && [ -f "${BREW_PREFIX}/etc/xml/catalog" ]; then
+  XML_CATALOG="${BREW_PREFIX}/etc/xml/catalog"
+elif [ -f /usr/local/etc/xml/catalog ]; then
+  XML_CATALOG="/usr/local/etc/xml/catalog"
+fi
+if [ -n "${XML_CATALOG}" ]; then
+  export XML_CATALOG_FILES="${XML_CATALOG}"
+fi
+if [ -n "${BISON_BIN}" ]; then
+  export PATH="${BISON_BIN}:${PATH}"
+fi
+
 echo "Building for iOS..."
-PATH="/usr/local/opt/bison/bin:$PATH" XML_CATALOG_FILES="/usr/local/etc/xml/catalog" ./ios.sh -x --full --enable-gpl --disable-lib-srt --disable-lib-gnutls --disable-lib-lame
+./ios.sh -x --full --enable-gpl --disable-lib-srt --disable-lib-gnutls --disable-lib-lame
 echo "Building for tvOS..."
-PATH="/usr/local/opt/bison/bin:$PATH" XML_CATALOG_FILES="/usr/local/etc/xml/catalog" ./tvos.sh -x --full --enable-gpl --disable-lib-srt --disable-lib-gnutls --disable-lib-lame
+./tvos.sh -x --full --enable-gpl --disable-lib-srt --disable-lib-gnutls --disable-lib-lame
 echo "Building for macOS..."
-PATH="/usr/local/opt/bison/bin:$PATH" XML_CATALOG_FILES="/usr/local/etc/xml/catalog" ./macos.sh -x --full --enable-gpl --disable-lib-srt --disable-lib-gnutls --disable-lib-lame
+./macos.sh -x --full --enable-gpl --disable-lib-srt --disable-lib-gnutls --disable-lib-lame
 echo "Building for watchOS..."
 #./watchos.sh --enable-watchos-zlib --enable-watchos-bzip2 --no-bitcode --enable-gmp --enable-gnutls -x
 
