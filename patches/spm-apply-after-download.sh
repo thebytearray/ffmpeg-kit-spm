@@ -305,6 +305,30 @@ apply_tiff_cmake() {
   return 0
 }
 
+apply_libpng_pngpriv_fp_h() {
+  # Legacy libpng treats TARGET_OS_MAC like classic Mac and includes <fp.h>, which
+  # Apple SDKs no longer ship (iOS/macOS builds fail with: 'fp.h' file not found).
+  local hdr="${BASEDIR}/src/libpng/pngpriv.h"
+  local patch="${SPM_PATCH_ROOT}/patches/ffmpeg-kit-libpng-pngpriv-fp-h.patch"
+  [[ -f "${hdr}" ]] || return 0
+  if ! grep -Fq 'defined(THINK_C) || defined(__SC__) || defined(TARGET_OS_MAC)' "${hdr}"; then
+    return 0
+  fi
+
+  echo "Applying libpng pngpriv.h fp.h / TARGET_OS_MAC fix (Apple SDKs)..."
+  if [[ -f "${patch}" ]] && ( cd "${BASEDIR}" && patch -p1 --fuzz=2 < "${patch}" ); then
+    return 0
+  fi
+
+  echo "patch(1) did not apply; using perl fallback for libpng pngpriv.h."
+  perl -i -pe 's/defined\(THINK_C\) \|\| defined\(__SC__\) \|\| defined\(TARGET_OS_MAC\)/defined(THINK_C) || defined(__SC__)/' "${hdr}"
+  if grep -Fq 'defined(THINK_C) || defined(__SC__) || defined(TARGET_OS_MAC)' "${hdr}"; then
+    echo "ERROR: could not fix ${hdr} (TARGET_OS_MAC / fp.h)" >&2
+    return 1
+  fi
+  return 0
+}
+
 apply_shine_l3mdct
 apply_xvid_encoder_c23_bool
 apply_libvidstab_cmake
@@ -316,4 +340,5 @@ apply_libsndfile_cmake
 apply_sdl_cmake
 apply_jpeg_cmake
 apply_libpng_cmake
+apply_libpng_pngpriv_fp_h
 apply_tiff_cmake
