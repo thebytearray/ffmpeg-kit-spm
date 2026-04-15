@@ -98,12 +98,9 @@ for _spm_plat in ios tvos macos; do
   inject_spm_shine_post_download_hook "${WORK_DIR}/${_spm_plat}.sh"
 done
 
-SHINE_PATCH="${PACKAGE_ROOT}/patches/ffmpeg-kit-shine-l3mdct-h.patch"
-if [[ -f "${SHINE_PATCH}" ]] && [[ -f src/shine/src/lib/l3mdct.h ]]; then
-  if grep -q 'void shine_mdct_initialise();' src/shine/src/lib/l3mdct.h; then
-    echo "Applying shine l3mdct.h patch early (tree already has src/shine)..."
-    patch -p1 --fuzz=0 < "${SHINE_PATCH}" || exit 1
-  fi
+# Same fix as post-download hook (patch + CRLF + perl fallback); only runs if src/shine exists early.
+if [[ -f src/shine/src/lib/l3mdct.h ]]; then
+  BASEDIR="${WORK_DIR}" SPM_PATCH_ROOT="${PACKAGE_ROOT}" bash "${PACKAGE_ROOT}/patches/spm-apply-shine-l3mdct.sh" || exit 1
 fi
 
 echo "Install build dependencies..."
