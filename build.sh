@@ -5,6 +5,27 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PACKAGE_ROOT="${SCRIPT_DIR}"
 
+# On failure, print the tail of ffmpeg-kit's build.log (local runs). In CI, the workflow prints this
+# to avoid duplicating the same block in the log.
+print_ffmpeg_kit_build_log_tail_on_failure() {
+  local ec=$?
+  [[ $ec -eq 0 ]] && exit 0
+  if [[ "${CI:-}" == "true" ]]; then
+    exit "$ec"
+  fi
+  local log="${WORK_DIR:-${PACKAGE_ROOT}/.tmp/ffmpeg-kit}/build.log"
+  echo ""
+  echo "======== Last 100 lines of FFmpeg-Kit build.log (${log}) — exit code ${ec} ========"
+  if [[ -f "$log" ]]; then
+    tail -n 100 "$log" 2>/dev/null || true
+  else
+    echo "(file not found — failure may have happened before FFmpeg-Kit created this log.)"
+  fi
+  echo "==================================================================================="
+  exit "$ec"
+}
+trap print_ffmpeg_kit_build_log_tail_on_failure EXIT
+
 # Release tag for this Swift package (GitHub Releases + Package.swift binary URLs).
 FFMPEG_KIT_TAG="${FFMPEG_KIT_TAG:-v1.0.0}"
 
