@@ -151,8 +151,31 @@ apply_chromaprint_cmake() {
   return 0
 }
 
+apply_soxr_cmake() {
+  local cm="${BASEDIR}/src/soxr/CMakeLists.txt"
+  local patch="${SPM_PATCH_ROOT}/patches/ffmpeg-kit-soxr-cmake.patch"
+  [[ -f "${cm}" ]] || return 0
+  if ! grep -Fq 'cmake_minimum_required (VERSION 3.1 FATAL_ERROR)' "${cm}"; then
+    return 0
+  fi
+
+  echo "Applying soxr CMakeLists cmake_minimum_required >= 3.5 (CMake 4.x)..."
+  if [[ -f "${patch}" ]] && ( cd "${BASEDIR}" && patch -p1 --fuzz=2 < "${patch}" ); then
+    return 0
+  fi
+
+  echo "patch(1) did not apply; using perl fallback for soxr CMakeLists.txt."
+  perl -i -pe 's/cmake_minimum_required \(VERSION 3\.1 FATAL_ERROR\)/cmake_minimum_required (VERSION 3.5 FATAL_ERROR)/' "${cm}"
+  if grep -Fq 'cmake_minimum_required (VERSION 3.1 FATAL_ERROR)' "${cm}"; then
+    echo "ERROR: could not bump cmake_minimum_required in ${cm}" >&2
+    return 1
+  fi
+  return 0
+}
+
 apply_shine_l3mdct
 apply_xvid_encoder_c23_bool
 apply_libvidstab_cmake
 apply_snappy_cmake
 apply_chromaprint_cmake
+apply_soxr_cmake

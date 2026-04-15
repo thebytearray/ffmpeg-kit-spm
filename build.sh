@@ -100,7 +100,7 @@ done
 # Same patches when trees exist before platform scripts (local partial trees).
 if [[ -f src/shine/src/lib/l3mdct.h ]] || [[ -f src/xvidcore/xvidcore/src/encoder.h ]] \
   || [[ -f src/libvidstab/CMakeLists.txt ]] || [[ -f src/snappy/CMakeLists.txt ]] \
-  || [[ -f src/chromaprint/CMakeLists.txt ]]; then
+  || [[ -f src/chromaprint/CMakeLists.txt ]] || [[ -f src/soxr/CMakeLists.txt ]]; then
   BASEDIR="${WORK_DIR}" SPM_PATCH_ROOT="${PACKAGE_ROOT}" bash "${PACKAGE_ROOT}/patches/spm-apply-after-download.sh" || exit 1
 fi
 
