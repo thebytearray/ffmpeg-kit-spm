@@ -4,17 +4,22 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Release tag (e.g. full-gpl.v6.0.0)'
+        description: 'SPM / GitHub release tag (e.g. v1.0.0)'
         required: true
+        type: string
+      ffmpeg_kit_ref:
+        description: 'Git ref on arthenica/ffmpeg-kit (e.g. main or a release tag like full-gpl.v5.1.2.6)'
+        required: true
+        default: 'main'
         type: string
 
 jobs:
   build-and-release:
-    runs-on: macos-14
+    runs-on: macos-latest
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Configure git
@@ -38,4 +43,5 @@ jobs:
       - name: Build and publish
         env:
           FFMPEG_KIT_TAG: ${{ inputs.tag }}
+          FFMPEG_KIT_GIT_REF: ${{ inputs.ffmpeg_kit_ref }}
         run: ./build.sh

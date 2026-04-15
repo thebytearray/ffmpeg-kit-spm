@@ -1,31 +1,36 @@
-#!/bin/sh
+#!/bin/bash
 set -e
 
-FFMPEG_KIT_TAG="${FFMPEG_KIT_TAG:-full-gpl.v5.1.2.6}"
-FFMPEG_KIT_CHECKOUT="origin/develop"
-#FFMPEG_KIT_CHECKOUT="origin/tags/$FFMPEG_KIT_TAG"
+# Root of this Swift package (directory containing Package.swift).
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+PACKAGE_ROOT="${SCRIPT_DIR}"
 
-FFMPEG_KIT_REPO="https://github.com/thebytearray/ffmpeg-kit"
-WORK_DIR=".tmp/ffmpeg-kit"
+# Release tag for this Swift package (GitHub Releases + Package.swift binary URLs).
+FFMPEG_KIT_TAG="${FFMPEG_KIT_TAG:-v1.0.0}"
 
-if [[ ! -d $WORK_DIR ]]; then
-  echo "Cloning ffmpeg-kit repository..."
-  mkdir .tmp/ || true
-  cd .tmp/
-  git clone $FFMPEG_KIT_REPO
-  cd ../
+# Git branch, tag, or SHA inside ffmpeg-kit (see arthenica/ffmpeg-kit apple/README.md).
+# Defaults to main; for a release matching FFMPEG_KIT_TAG, set e.g. FFMPEG_KIT_GIT_REF=full-gpl.v5.1.2.6.
+FFMPEG_KIT_GIT_REF="${FFMPEG_KIT_GIT_REF:-main}"
+
+FFMPEG_KIT_REPO="${FFMPEG_KIT_REPO:-https://github.com/arthenica/ffmpeg-kit}"
+# Build tree (cloned on first run). Override with WORK_DIR if needed.
+WORK_DIR="${WORK_DIR:-${PACKAGE_ROOT}/.tmp/ffmpeg-kit}"
+
+if [ ! -f "${WORK_DIR}/ios.sh" ]; then
+  echo "Cloning ffmpeg-kit into ${WORK_DIR}..."
+  mkdir -p "$(dirname "${WORK_DIR}")"
+  git clone "${FFMPEG_KIT_REPO}" "${WORK_DIR}"
 fi
 
-echo "Checking out $FFMPEG_KIT_CHECKOUT..."
-cd $WORK_DIR
+echo "Checking out ${FFMPEG_KIT_GIT_REF}..."
+cd "${WORK_DIR}"
 git fetch
 git fetch --tags
-git checkout $FFMPEG_KIT_CHECKOUT
+git checkout "${FFMPEG_KIT_GIT_REF}"
 
 # CMake 4.x (Homebrew): x265 vendored CMakeLists used OLD policies CMP0025/CMP0054 (unsupported)
 # and had project() before cmake_minimum_required(). See patches/ffmpeg-kit-x265-cmake.patch.
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-X265_CMAKE_PATCH="${SCRIPT_DIR}/patches/ffmpeg-kit-x265-cmake.patch"
+X265_CMAKE_PATCH="${PACKAGE_ROOT}/patches/ffmpeg-kit-x265-cmake.patch"
 if [ -f "${X265_CMAKE_PATCH}" ] && [ -f tools/patch/cmake/x265/CMakeLists.txt ]; then
   if grep -q 'cmake_policy(SET CMP0025 OLD)' tools/patch/cmake/x265/CMakeLists.txt; then
     echo "Applying x265 CMake patch for CMake 4.x..."
@@ -34,7 +39,28 @@ if [ -f "${X265_CMAKE_PATCH}" ] && [ -f tools/patch/cmake/x265/CMakeLists.txt ];
 fi
 
 echo "Install build dependencies..."
-brew install autoconf automake libtool pkg-config curl git doxygen nasm cmake gcc gperf texinfo yasm bison autogen wget gettext meson ninja ragel groff gtk-doc docbook docbook-xsl libtasn1 gh --overwrite
+# Avoid concurrent `brew install` (e.g. two terminals running ./build.sh): Homebrew locks bottle downloads.
+wait_for_brew_idle() {
+  local n=0
+  while pgrep -qf '/brew\.rb install' >/dev/null 2>&1; do
+    echo "Another Homebrew install is running; waiting before continuing..."
+    sleep 15
+    n=$((n + 1))
+    if [[ $n -gt 120 ]]; then
+      echo "Timed out after ~30 minutes waiting for Homebrew. Close other brew installs and retry."
+      exit 1
+    fi
+  done
+}
+wait_for_brew_idle
+# No --overwrite: avoids unnecessary reinstall churn; run `brew upgrade` yourself if you need newer bottles.
+BREW_DEPS=(autoconf automake libtool pkg-config curl git doxygen nasm cmake gcc gperf texinfo yasm bison autogen wget gettext meson ninja ragel groff gtk-doc docbook docbook-xsl libtasn1 gh)
+if ! brew install "${BREW_DEPS[@]}"; then
+  echo "brew install failed (often a transient lock). Waiting and retrying once..."
+  wait_for_brew_idle
+  sleep 5
+  brew install "${BREW_DEPS[@]}"
+fi
 
 BREW_PREFIX="$(brew --prefix 2>/dev/null || true)"
 BISON_BIN=""
@@ -56,35 +82,41 @@ if [ -n "${BISON_BIN}" ]; then
   export PATH="${BISON_BIN}:${PATH}"
 fi
 
+# Full GPL: --full enables all external libraries; --enable-gpl allows GPL-licensed libs (x264, x265, etc.).
+# Per apple/README.md, run ios/tvos/macos.sh then apple.sh to merge into bundle-apple-xcframework.
+GPL_BUILD_FLAGS="-x --full --enable-gpl --disable-lib-srt --disable-lib-gnutls --disable-lib-lame"
+
 echo "Building for iOS..."
-./ios.sh -x --full --enable-gpl --disable-lib-srt --disable-lib-gnutls --disable-lib-lame
+./ios.sh ${GPL_BUILD_FLAGS}
 echo "Building for tvOS..."
-./tvos.sh -x --full --enable-gpl --disable-lib-srt --disable-lib-gnutls --disable-lib-lame
+./tvos.sh ${GPL_BUILD_FLAGS}
 echo "Building for macOS..."
-./macos.sh -x --full --enable-gpl --disable-lib-srt --disable-lib-gnutls --disable-lib-lame
-echo "Building for watchOS..."
-#./watchos.sh --enable-watchos-zlib --enable-watchos-bzip2 --no-bitcode --enable-gmp --enable-gnutls -x
+./macos.sh ${GPL_BUILD_FLAGS}
 
-echo "Bundling final XCFramework"
-./apple.sh --disable-watchos --disable-watchsimulator
+echo "Bundling umbrella XCFrameworks (see apple/README.md)..."
+./apple.sh
 
-cd ../../
+cd "${PACKAGE_ROOT}"
 
 echo "Updating package file..."
 PACKAGE_STRING=""
 sed -i '' -e "s/let release =.*/let release = \"$FFMPEG_KIT_TAG\"/" Package.swift
 
-XCFRAMEWORK_DIR="$WORK_DIR/prebuilt/bundle-apple-xcframework"
+XCFRAMEWORK_DIR="${WORK_DIR}/prebuilt/bundle-apple-xcframework"
 
-rm -rf $XCFRAMEWORK_DIR/*.zip
+rm -f "${XCFRAMEWORK_DIR}"/*.zip
 
-for f in $(ls "$XCFRAMEWORK_DIR")
+for f in $(ls "${XCFRAMEWORK_DIR}")
 do
     echo "Adding $f to package list..."
-    PACAKGE="$XCFRAMEWORK_DIR/$f"
-    ditto -c -k --sequesterRsrc --keepParent $PACAKGE "$PACAKGE.zip"
+    PACAKGE="${XCFRAMEWORK_DIR}/${f}"
+    ditto -c -k --sequesterRsrc --keepParent "${PACAKGE}" "${PACAKGE}.zip"
     PACKAGE_NAME=$(basename "$f" .xcframework)
-    PACKAGE_SUM=$(sha256sum "$PACAKGE.zip" | awk '{ print $1 }')
+    if command -v sha256sum >/dev/null 2>&1; then
+      PACKAGE_SUM=$(sha256sum "${PACAKGE}.zip" | awk '{ print $1 }')
+    else
+      PACKAGE_SUM=$(shasum -a 256 "${PACAKGE}.zip" | awk '{ print $1 }')
+    fi
     PACKAGE_STRING="$PACKAGE_STRING\"$PACKAGE_NAME\": \"$PACKAGE_SUM\", "
 done
 
@@ -92,28 +124,34 @@ PACKAGE_STRING=$(basename "$PACKAGE_STRING" ", ")
 sed -i '' -e "s/let frameworks =.*/let frameworks = [$PACKAGE_STRING]/" Package.swift
 
 echo "Copying License..."
-cp -f .tmp/ffmpeg-kit/LICENSE ./
+cp -f "${WORK_DIR}/LICENSE" ./
+
+if [[ "${SPM_SKIP_RELEASE:-}" == "1" ]]; then
+  echo "SPM_SKIP_RELEASE=1: skipping git commit, tag, push, and gh release."
+  echo "XCFrameworks and Package.swift are updated locally."
+  exit 0
+fi
 
 echo "Committing Changes..."
 git add -u
 git commit -m "Creating release for $FFMPEG_KIT_TAG"
 
 echo "Creating Tag..."
-git tag $FFMPEG_KIT_TAG
+git tag "$FFMPEG_KIT_TAG"
 git push
 git push origin --tags
 
 echo "Creating Release..."
-gh release create -p -d $FFMPEG_KIT_TAG -t "FFmpegKit SPM $FFMPEG_KIT_TAG" --generate-notes --verify-tag
+gh release create -p -d "$FFMPEG_KIT_TAG" -t "FFmpegKit SPM $FFMPEG_KIT_TAG" --generate-notes --verify-tag
 
 echo "Uploading Binaries..."
-for f in $(ls "$XCFRAMEWORK_DIR")
+for f in $(ls "${XCFRAMEWORK_DIR}")
 do
     if [[ $f == *.zip ]]; then
-        gh release upload $FFMPEG_KIT_TAG "$XCFRAMEWORK_DIR/$f"
+        gh release upload "$FFMPEG_KIT_TAG" "${XCFRAMEWORK_DIR}/${f}"
     fi
 done
 
-gh release edit $FFMPEG_KIT_TAG --draft=false
+gh release edit "$FFMPEG_KIT_TAG" --draft=false
 
 echo "All done!"
