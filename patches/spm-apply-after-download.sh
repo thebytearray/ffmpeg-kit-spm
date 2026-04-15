@@ -283,6 +283,31 @@ apply_libpng_cmake() {
   return 0
 }
 
+apply_srt_cmake() {
+  local cm="${BASEDIR}/src/srt/CMakeLists.txt"
+  local patch="${SPM_PATCH_ROOT}/patches/ffmpeg-kit-srt-cmake.patch"
+  [[ -f "${cm}" ]] || return 0
+  if grep -qE 'cmake_minimum_required\s*\(\s*VERSION\s+3\.([5-9]|[1-9][0-9])' "${cm}"; then
+    return 0
+  fi
+  if ! grep -q 'cmake_minimum_required' "${cm}"; then
+    return 0
+  fi
+
+  echo "Applying srt CMakeLists cmake_minimum_required >= 3.5 (CMake 4.x)..."
+  if [[ -f "${patch}" ]] && ( cd "${BASEDIR}" && patch -p1 --fuzz=2 < "${patch}" ); then
+    return 0
+  fi
+
+  echo "patch(1) did not apply; using sed fallback for srt CMakeLists.txt."
+  perl -i -pe 's/cmake_minimum_required\s*\(\s*VERSION\s+2\.8\.12\s+FATAL_ERROR\s*\)/cmake_minimum_required (VERSION 3.5 FATAL_ERROR)/' "${cm}"
+  if ! grep -qE 'cmake_minimum_required\s*\(\s*VERSION\s+3\.([5-9]|[1-9][0-9])' "${cm}"; then
+    echo "ERROR: could not bump cmake_minimum_required in ${cm}" >&2
+    return 1
+  fi
+  return 0
+}
+
 apply_tiff_cmake() {
   local cm="${BASEDIR}/src/tiff/CMakeLists.txt"
   local patch="${SPM_PATCH_ROOT}/patches/ffmpeg-kit-tiff-cmake.patch"
@@ -347,4 +372,5 @@ apply_sdl_cmake
 apply_jpeg_cmake
 apply_libpng_cmake
 apply_pngpriv_fp_h_apple_sdk
+apply_srt_cmake
 apply_tiff_cmake

@@ -14,6 +14,7 @@ Applied automatically after ffmpeg-kit downloads sources (`spm-apply-after-downl
 | `ffmpeg-kit-sdl-cmake.patch` | CMake 4.x: SDL (alternate CMake path) |
 | `ffmpeg-kit-shine-l3mdct-h.patch` | GNU C23: shine `l3mdct.h` prototype |
 | `ffmpeg-kit-snappy-cmake.patch` | CMake 4.x: snappy |
+| `ffmpeg-kit-srt-cmake.patch` | CMake 4.x: libsrt (SRT) root `CMakeLists.txt` |
 | `ffmpeg-kit-soxr-cmake.patch` | CMake 4.x: soxr |
 | `ffmpeg-kit-tiff-cmake.patch` | CMake 4.x: libtiff |
 | `ffmpeg-kit-x265-cmake.patch` | CMake 4.x: vendored x265 in `tools/patch/cmake/x265/` |
