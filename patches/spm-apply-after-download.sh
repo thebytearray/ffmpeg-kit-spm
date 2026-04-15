@@ -82,5 +82,77 @@ PY
   return 0
 }
 
+apply_libvidstab_cmake() {
+  local cm="${BASEDIR}/src/libvidstab/CMakeLists.txt"
+  local patch="${SPM_PATCH_ROOT}/patches/ffmpeg-kit-libvidstab-cmake.patch"
+  [[ -f "${cm}" ]] || return 0
+  if grep -qE 'cmake_minimum_required\s*\(\s*VERSION\s+3\.([5-9]|[1-9][0-9])' "${cm}"; then
+    return 0
+  fi
+  if ! grep -q 'cmake_minimum_required' "${cm}"; then
+    return 0
+  fi
+
+  echo "Applying libvidstab CMakeLists cmake_minimum_required >= 3.5 (CMake 4.x)..."
+  if [[ -f "${patch}" ]] && ( cd "${BASEDIR}" && patch -p1 --fuzz=2 < "${patch}" ); then
+    return 0
+  fi
+
+  echo "patch(1) did not apply; using sed fallback for libvidstab CMakeLists.txt."
+  perl -i -pe 's/^cmake_minimum_required\s*\(\s*VERSION\s+2\.8\.5\s*\)/cmake_minimum_required(VERSION 3.5)/' "${cm}"
+  if ! grep -qE 'cmake_minimum_required\s*\(\s*VERSION\s+3\.([5-9]|[1-9][0-9])' "${cm}"; then
+    echo "ERROR: could not bump cmake_minimum_required in ${cm}" >&2
+    return 1
+  fi
+  return 0
+}
+
+apply_snappy_cmake() {
+  local cm="${BASEDIR}/src/snappy/CMakeLists.txt"
+  local patch="${SPM_PATCH_ROOT}/patches/ffmpeg-kit-snappy-cmake.patch"
+  [[ -f "${cm}" ]] || return 0
+  if ! grep -Fq 'cmake_minimum_required(VERSION 3.1)' "${cm}"; then
+    return 0
+  fi
+
+  echo "Applying snappy CMakeLists cmake_minimum_required >= 3.5 (CMake 4.x)..."
+  if [[ -f "${patch}" ]] && ( cd "${BASEDIR}" && patch -p1 --fuzz=2 < "${patch}" ); then
+    return 0
+  fi
+
+  echo "patch(1) did not apply; using perl fallback for snappy CMakeLists.txt."
+  perl -i -pe 's/cmake_minimum_required\(VERSION 3\.1\)/cmake_minimum_required(VERSION 3.5)/' "${cm}"
+  if grep -Fq 'cmake_minimum_required(VERSION 3.1)' "${cm}"; then
+    echo "ERROR: could not bump cmake_minimum_required in ${cm}" >&2
+    return 1
+  fi
+  return 0
+}
+
+apply_chromaprint_cmake() {
+  local cm="${BASEDIR}/src/chromaprint/CMakeLists.txt"
+  local patch="${SPM_PATCH_ROOT}/patches/ffmpeg-kit-chromaprint-cmake.patch"
+  [[ -f "${cm}" ]] || return 0
+  if ! grep -Fq 'cmake_minimum_required(VERSION 3.3)' "${cm}"; then
+    return 0
+  fi
+
+  echo "Applying chromaprint CMakeLists cmake_minimum_required >= 3.5 (CMake 4.x)..."
+  if [[ -f "${patch}" ]] && ( cd "${BASEDIR}" && patch -p1 --fuzz=2 < "${patch}" ); then
+    return 0
+  fi
+
+  echo "patch(1) did not apply; using perl fallback for chromaprint CMakeLists.txt."
+  perl -i -pe 's/cmake_minimum_required\(VERSION 3\.3\)/cmake_minimum_required(VERSION 3.5)/' "${cm}"
+  if grep -Fq 'cmake_minimum_required(VERSION 3.3)' "${cm}"; then
+    echo "ERROR: could not bump cmake_minimum_required in ${cm}" >&2
+    return 1
+  fi
+  return 0
+}
+
 apply_shine_l3mdct
 apply_xvid_encoder_c23_bool
+apply_libvidstab_cmake
+apply_snappy_cmake
+apply_chromaprint_cmake

@@ -74,7 +74,7 @@ inject_spm_post_download_hook() {
   python3 - "${plat_script}" <<'PY' || exit 1
 import sys
 path = sys.argv[1]
-marker = "# ffmpeg-kit-spm: post-download C patches (shine, xvid, -std=gnu23)"
+marker = "# ffmpeg-kit-spm: post-download C/CMake patches (shine, xvid, cmake 4.x, -std=gnu23)"
 with open(path) as f:
     content = f.read()
 if "ffmpeg-kit-spm: post-download" in content:
@@ -98,7 +98,9 @@ for _spm_plat in ios tvos macos; do
 done
 
 # Same patches when trees exist before platform scripts (local partial trees).
-if [[ -f src/shine/src/lib/l3mdct.h ]] || [[ -f src/xvidcore/xvidcore/src/encoder.h ]]; then
+if [[ -f src/shine/src/lib/l3mdct.h ]] || [[ -f src/xvidcore/xvidcore/src/encoder.h ]] \
+  || [[ -f src/libvidstab/CMakeLists.txt ]] || [[ -f src/snappy/CMakeLists.txt ]] \
+  || [[ -f src/chromaprint/CMakeLists.txt ]]; then
   BASEDIR="${WORK_DIR}" SPM_PATCH_ROOT="${PACKAGE_ROOT}" bash "${PACKAGE_ROOT}/patches/spm-apply-after-download.sh" || exit 1
 fi
 
