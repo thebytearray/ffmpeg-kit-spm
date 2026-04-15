@@ -59,6 +59,13 @@ if [ -f "${X265_CMAKE_PATCH}" ] && [ -f tools/patch/cmake/x265/CMakeLists.txt ];
   fi
 fi
 
+# shine: l3mdct.h used K&R-style shine_mdct_initialise(); Clang -std=gnu23 rejects that vs the real prototype.
+SHINE_L3MDCT_H="src/shine/src/lib/l3mdct.h"
+if [[ -f "${SHINE_L3MDCT_H}" ]] && grep -q 'void shine_mdct_initialise();' "${SHINE_L3MDCT_H}"; then
+  echo "Fixing shine l3mdct.h prototype for GNU C23 / Clang..."
+  perl -i -pe 's/^void shine_mdct_initialise\(\);\r?$/void shine_mdct_initialise(shine_global_config *config);/' "${SHINE_L3MDCT_H}" || exit 1
+fi
+
 echo "Install build dependencies..."
 # Avoid concurrent `brew install` (e.g. two terminals running ./build.sh): Homebrew locks bottle downloads.
 wait_for_brew_idle() {
