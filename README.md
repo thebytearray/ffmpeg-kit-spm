@@ -55,6 +55,7 @@ Environment variables:
 | `FFMPEG_KIT_REPO` | `https://github.com/arthenica/ffmpeg-kit` | Clone URL for ffmpeg-kit |
 | `WORK_DIR` | `<repo>/.tmp/ffmpeg-kit` | Clone and build tree |
 | `SPM_SKIP_RELEASE` | unset | Set to `1` to skip git and gh release steps after a successful build |
+| `SPM_DISABLE_INTEL_SIM` | `1` when `CI=true`, else unset | Adds `--disable-x86-64` for **iOS** and **tvOS** builds to skip the Intel simulator slice (avoids common `x265`/pkg-config failures on that arch). Set to `0` for a full multi-arch build. |
 
 More detail: [`scripts/README.md`](scripts/README.md). Patch index: [`patches/README.md`](patches/README.md).
 
