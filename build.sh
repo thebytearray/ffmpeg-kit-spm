@@ -59,11 +59,14 @@ if [ -f "${X265_CMAKE_PATCH}" ] && [ -f tools/patch/cmake/x265/CMakeLists.txt ];
   fi
 fi
 
-# shine: l3mdct.h used K&R-style shine_mdct_initialise(); Clang -std=gnu23 rejects that vs the real prototype.
-SHINE_L3MDCT_H="src/shine/src/lib/l3mdct.h"
-if [[ -f "${SHINE_L3MDCT_H}" ]] && grep -q 'void shine_mdct_initialise();' "${SHINE_L3MDCT_H}"; then
-  echo "Fixing shine l3mdct.h prototype for GNU C23 / Clang..."
-  perl -i -pe 's/^void shine_mdct_initialise\(\);\r?$/void shine_mdct_initialise(shine_global_config *config);/' "${SHINE_L3MDCT_H}" || exit 1
+# shine: l3mdct.h used old-style shine_mdct_initialise(); Clang -std=gnu23 conflicts with the definition.
+# See patches/ffmpeg-kit-shine-l3mdct-h.patch
+SHINE_PATCH="${PACKAGE_ROOT}/patches/ffmpeg-kit-shine-l3mdct-h.patch"
+if [[ -f "${SHINE_PATCH}" ]] && [[ -f src/shine/src/lib/l3mdct.h ]]; then
+  if grep -q 'void shine_mdct_initialise();' src/shine/src/lib/l3mdct.h; then
+    echo "Applying shine l3mdct.h patch (GNU C23 prototype)..."
+    patch -p1 --fuzz=0 < "${SHINE_PATCH}" || exit 1
+  fi
 fi
 
 echo "Install build dependencies..."
