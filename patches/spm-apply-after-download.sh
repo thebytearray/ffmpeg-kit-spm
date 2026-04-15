@@ -173,9 +173,147 @@ apply_soxr_cmake() {
   return 0
 }
 
+apply_libsamplerate_cmake() {
+  local cm="${BASEDIR}/src/libsamplerate/CMakeLists.txt"
+  local patch="${SPM_PATCH_ROOT}/patches/ffmpeg-kit-libsamplerate-cmake.patch"
+  [[ -f "${cm}" ]] || return 0
+  if ! grep -Fq 'cmake_minimum_required(VERSION 3.1..3.18)' "${cm}"; then
+    return 0
+  fi
+
+  echo "Applying libsamplerate CMakeLists cmake_minimum lower bound >= 3.5 (CMake 4.x)..."
+  if [[ -f "${patch}" ]] && ( cd "${BASEDIR}" && patch -p1 --fuzz=2 < "${patch}" ); then
+    return 0
+  fi
+
+  echo "patch(1) did not apply; using perl fallback for libsamplerate CMakeLists.txt."
+  perl -i -pe 's/VERSION 3\.1\.\.3\.18/VERSION 3.5..3.18/' "${cm}"
+  if grep -Fq 'cmake_minimum_required(VERSION 3.1..3.18)' "${cm}"; then
+    echo "ERROR: could not bump cmake_minimum_required in ${cm}" >&2
+    return 1
+  fi
+  return 0
+}
+
+apply_libsndfile_cmake() {
+  local cm="${BASEDIR}/src/libsndfile/CMakeLists.txt"
+  local patch="${SPM_PATCH_ROOT}/patches/ffmpeg-kit-libsndfile-cmake.patch"
+  [[ -f "${cm}" ]] || return 0
+  if ! grep -Fq 'cmake_minimum_required (VERSION 3.1..3.18)' "${cm}"; then
+    return 0
+  fi
+
+  echo "Applying libsndfile CMakeLists cmake_minimum lower bound >= 3.5 (CMake 4.x)..."
+  if [[ -f "${patch}" ]] && ( cd "${BASEDIR}" && patch -p1 --fuzz=2 < "${patch}" ); then
+    return 0
+  fi
+
+  echo "patch(1) did not apply; using perl fallback for libsndfile CMakeLists.txt."
+  perl -i -pe 's/cmake_minimum_required \(VERSION 3\.1\.\.3\.18\)/cmake_minimum_required (VERSION 3.5..3.18)/' "${cm}"
+  if grep -Fq 'cmake_minimum_required (VERSION 3.1..3.18)' "${cm}"; then
+    echo "ERROR: could not bump cmake_minimum_required in ${cm}" >&2
+    return 1
+  fi
+  return 0
+}
+
+apply_sdl_cmake() {
+  local cm="${BASEDIR}/src/sdl/CMakeLists.txt"
+  local patch="${SPM_PATCH_ROOT}/patches/ffmpeg-kit-sdl-cmake.patch"
+  [[ -f "${cm}" ]] || return 0
+  if ! grep -Fq 'cmake_minimum_required(VERSION 2.8.11)' "${cm}"; then
+    return 0
+  fi
+
+  echo "Applying SDL CMakeLists cmake_minimum_required >= 3.5 (CMake 4.x)..."
+  if [[ -f "${patch}" ]] && ( cd "${BASEDIR}" && patch -p1 --fuzz=2 < "${patch}" ); then
+    return 0
+  fi
+
+  echo "patch(1) did not apply; using perl fallback for SDL CMakeLists.txt."
+  perl -i -pe 's/cmake_minimum_required\(VERSION 2\.8\.11\)/cmake_minimum_required(VERSION 3.5)/' "${cm}"
+  if grep -Fq 'cmake_minimum_required(VERSION 2.8.11)' "${cm}"; then
+    echo "ERROR: could not bump cmake_minimum_required in ${cm}" >&2
+    return 1
+  fi
+  return 0
+}
+
+apply_jpeg_cmake() {
+  local cm="${BASEDIR}/src/jpeg/CMakeLists.txt"
+  local patch="${SPM_PATCH_ROOT}/patches/ffmpeg-kit-jpeg-cmake.patch"
+  [[ -f "${cm}" ]] || return 0
+  if ! grep -Fq 'cmake_minimum_required(VERSION 2.8.12)' "${cm}"; then
+    return 0
+  fi
+
+  echo "Applying libjpeg-turbo (jpeg) CMakeLists cmake_minimum_required >= 3.5 (CMake 4.x)..."
+  if [[ -f "${patch}" ]] && ( cd "${BASEDIR}" && patch -p1 --fuzz=2 < "${patch}" ); then
+    return 0
+  fi
+
+  echo "patch(1) did not apply; using perl fallback for jpeg CMakeLists.txt."
+  perl -i -pe 's/cmake_minimum_required\(VERSION 2\.8\.12\)/cmake_minimum_required(VERSION 3.5)/' "${cm}"
+  if grep -Fq 'cmake_minimum_required(VERSION 2.8.12)' "${cm}"; then
+    echo "ERROR: could not bump cmake_minimum_required in ${cm}" >&2
+    return 1
+  fi
+  return 0
+}
+
+apply_libpng_cmake() {
+  local cm="${BASEDIR}/src/libpng/CMakeLists.txt"
+  local patch="${SPM_PATCH_ROOT}/patches/ffmpeg-kit-libpng-cmake.patch"
+  [[ -f "${cm}" ]] || return 0
+  if ! grep -Fq 'cmake_minimum_required(VERSION 3.1)' "${cm}"; then
+    return 0
+  fi
+
+  echo "Applying libpng CMakeLists cmake_minimum / cmake_policy >= 3.5 (CMake 4.x)..."
+  if [[ -f "${patch}" ]] && ( cd "${BASEDIR}" && patch -p1 --fuzz=2 < "${patch}" ); then
+    return 0
+  fi
+
+  echo "patch(1) did not apply; using perl fallback for libpng CMakeLists.txt."
+  perl -i -pe 's/cmake_minimum_required\(VERSION 3\.1\)/cmake_minimum_required(VERSION 3.5)/; s/cmake_policy\(VERSION 3\.1\)/cmake_policy(VERSION 3.5)/' "${cm}"
+  if grep -Fq 'cmake_minimum_required(VERSION 3.1)' "${cm}"; then
+    echo "ERROR: could not bump cmake_minimum_required in ${cm}" >&2
+    return 1
+  fi
+  return 0
+}
+
+apply_tiff_cmake() {
+  local cm="${BASEDIR}/src/tiff/CMakeLists.txt"
+  local patch="${SPM_PATCH_ROOT}/patches/ffmpeg-kit-tiff-cmake.patch"
+  [[ -f "${cm}" ]] || return 0
+  if ! grep -Fq 'cmake_minimum_required(VERSION 2.8.11)' "${cm}"; then
+    return 0
+  fi
+
+  echo "Applying libtiff CMakeLists cmake_minimum / cmake_policy >= 3.5 (CMake 4.x)..."
+  if [[ -f "${patch}" ]] && ( cd "${BASEDIR}" && patch -p1 --fuzz=2 < "${patch}" ); then
+    return 0
+  fi
+
+  echo "patch(1) did not apply; using perl fallback for tiff CMakeLists.txt."
+  perl -i -pe 's/cmake_minimum_required\(VERSION 2\.8\.11\)/cmake_minimum_required(VERSION 3.5)/; s/cmake_policy\(VERSION 2\.8\.9\)/cmake_policy(VERSION 3.5)/' "${cm}"
+  if grep -Fq 'cmake_minimum_required(VERSION 2.8.11)' "${cm}"; then
+    echo "ERROR: could not bump cmake_minimum_required in ${cm}" >&2
+    return 1
+  fi
+  return 0
+}
+
 apply_shine_l3mdct
 apply_xvid_encoder_c23_bool
 apply_libvidstab_cmake
 apply_snappy_cmake
 apply_chromaprint_cmake
 apply_soxr_cmake
+apply_libsamplerate_cmake
+apply_libsndfile_cmake
+apply_sdl_cmake
+apply_jpeg_cmake
+apply_libpng_cmake
+apply_tiff_cmake

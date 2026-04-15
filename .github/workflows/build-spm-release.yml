@@ -45,7 +45,15 @@ jobs:
       - name: Set up Xcode
         run: echo "export DEVELOPER_DIR=$(xcode-select -p)" > ~/.xcode.for.ffmpeg.kit.sh
       - name: Install dependencies
-        run: brew install autoconf automake libtool pkg-config curl git doxygen nasm cmake gcc gperf texinfo yasm bison autogen wget gettext meson ninja ragel groff gtk-doc docbook docbook-xsl libtasn1 gh --overwrite
+        run: |
+          BREW_DEPS=(autoconf automake libtool pkg-config curl git doxygen nasm cmake gcc gperf texinfo yasm bison autogen wget gettext meson ninja ragel groff gtk-doc docbook docbook-xsl libtasn1 gh)
+          BREW_MISSING=()
+          for p in "${BREW_DEPS[@]}"; do
+            brew list --formula "$p" &>/dev/null || BREW_MISSING+=("$p")
+          done
+          if [[ ${#BREW_MISSING[@]} -gt 0 ]]; then
+            brew install --overwrite "${BREW_MISSING[@]}"
+          fi
       - name: Build and publish
         env:
           CI: true

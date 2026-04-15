@@ -98,9 +98,8 @@ for _spm_plat in ios tvos macos; do
 done
 
 # Same patches when trees exist before platform scripts (local partial trees).
-if [[ -f src/shine/src/lib/l3mdct.h ]] || [[ -f src/xvidcore/xvidcore/src/encoder.h ]] \
-  || [[ -f src/libvidstab/CMakeLists.txt ]] || [[ -f src/snappy/CMakeLists.txt ]] \
-  || [[ -f src/chromaprint/CMakeLists.txt ]] || [[ -f src/soxr/CMakeLists.txt ]]; then
+# Any apply_* in patches/spm-apply-after-download.sh no-ops if the target file is absent.
+if [[ -d src ]] && [[ -f "${PACKAGE_ROOT}/patches/spm-apply-after-download.sh" ]]; then
   BASEDIR="${WORK_DIR}" SPM_PATCH_ROOT="${PACKAGE_ROOT}" bash "${PACKAGE_ROOT}/patches/spm-apply-after-download.sh" || exit 1
 fi
 
@@ -121,11 +120,19 @@ wait_for_brew_idle() {
 wait_for_brew_idle
 # No --overwrite: avoids unnecessary reinstall churn; run `brew upgrade` yourself if you need newer bottles.
 BREW_DEPS=(autoconf automake libtool pkg-config curl git doxygen nasm cmake gcc gperf texinfo yasm bison autogen wget gettext meson ninja ragel groff gtk-doc docbook docbook-xsl libtasn1 gh)
-if ! brew install "${BREW_DEPS[@]}"; then
-  echo "brew install failed (often a transient lock). Waiting and retrying once..."
-  wait_for_brew_idle
-  sleep 5
-  brew install "${BREW_DEPS[@]}"
+BREW_MISSING=()
+for _brew_pkg in "${BREW_DEPS[@]}"; do
+  if ! brew list --formula "${_brew_pkg}" &>/dev/null; then
+    BREW_MISSING+=("${_brew_pkg}")
+  fi
+done
+if [[ ${#BREW_MISSING[@]} -gt 0 ]]; then
+  if ! brew install "${BREW_MISSING[@]}"; then
+    echo "brew install failed (often a transient lock). Waiting and retrying once..."
+    wait_for_brew_idle
+    sleep 5
+    brew install "${BREW_MISSING[@]}"
+  fi
 fi
 
 BREW_PREFIX="$(brew --prefix 2>/dev/null || true)"
