@@ -49,6 +49,9 @@ git fetch
 git fetch --tags
 git checkout "${FFMPEG_KIT_GIT_REF}"
 
+# Used by patches/spm-apply-shine-l3mdct.sh (hooked into ios/tvos/macos.sh after source download).
+export SPM_PATCH_ROOT="${PACKAGE_ROOT}"
+
 # CMake 4.x (Homebrew): x265 vendored CMakeLists used OLD policies CMP0025/CMP0054 (unsupported)
 # and had project() before cmake_minimum_required(). See patches/ffmpeg-kit-x265-cmake.patch.
 X265_CMAKE_PATCH="${PACKAGE_ROOT}/patches/ffmpeg-kit-x265-cmake.patch"
@@ -59,12 +62,46 @@ if [ -f "${X265_CMAKE_PATCH}" ] && [ -f tools/patch/cmake/x265/CMakeLists.txt ];
   fi
 fi
 
-# shine: l3mdct.h used old-style shine_mdct_initialise(); Clang -std=gnu23 conflicts with the definition.
-# See patches/ffmpeg-kit-shine-l3mdct-h.patch
+# shine: l3mdct.h prototype fix for Clang -std=gnu23. On CI, src/shine appears only AFTER
+# downloaded_library_sources inside ios/tvos/macos.sh — inject a hook there (idempotent).
+# See patches/ffmpeg-kit-shine-l3mdct-h.patch and patches/spm-apply-shine-l3mdct.sh
+inject_spm_shine_post_download_hook() {
+  local plat_script="$1"
+  local marker='# ffmpeg-kit-spm: post-download shine l3mdct (GNU C23)'
+  [[ -f "${plat_script}" ]] || return 0
+  if grep -qF "${marker}" "${plat_script}"; then
+    return 0
+  fi
+  python3 - "${plat_script}" <<'PY' || exit 1
+import sys
+path = sys.argv[1]
+marker = "# ffmpeg-kit-spm: post-download shine l3mdct (GNU C23)"
+with open(path) as f:
+    content = f.read()
+if marker in content:
+    sys.exit(0)
+needle = 'downloaded_library_sources "${ENABLED_LIBRARIES[@]}"\n'
+if needle not in content:
+    sys.stderr.write(f"inject: pattern not found in {path}\n")
+    sys.exit(1)
+hook = marker + '''
+if [[ -n "${SPM_PATCH_ROOT:-}" ]] && [[ -f "${SPM_PATCH_ROOT}/patches/spm-apply-shine-l3mdct.sh" ]]; then
+  SPM_PATCH_ROOT="${SPM_PATCH_ROOT}" BASEDIR="${BASEDIR}" bash "${SPM_PATCH_ROOT}/patches/spm-apply-shine-l3mdct.sh" || exit 1
+fi
+
+'''
+with open(path, "w") as f:
+    f.write(content.replace(needle, needle + hook, 1))
+PY
+}
+for _spm_plat in ios tvos macos; do
+  inject_spm_shine_post_download_hook "${WORK_DIR}/${_spm_plat}.sh"
+done
+
 SHINE_PATCH="${PACKAGE_ROOT}/patches/ffmpeg-kit-shine-l3mdct-h.patch"
 if [[ -f "${SHINE_PATCH}" ]] && [[ -f src/shine/src/lib/l3mdct.h ]]; then
   if grep -q 'void shine_mdct_initialise();' src/shine/src/lib/l3mdct.h; then
-    echo "Applying shine l3mdct.h patch (GNU C23 prototype)..."
+    echo "Applying shine l3mdct.h patch early (tree already has src/shine)..."
     patch -p1 --fuzz=0 < "${SHINE_PATCH}" || exit 1
   fi
 fi
