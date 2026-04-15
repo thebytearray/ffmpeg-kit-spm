@@ -305,27 +305,33 @@ apply_tiff_cmake() {
   return 0
 }
 
-apply_libpng_pngpriv_fp_h() {
-  # Legacy libpng treats TARGET_OS_MAC like classic Mac and includes <fp.h>, which
-  # Apple SDKs no longer ship (iOS/macOS builds fail with: 'fp.h' file not found).
-  local hdr="${BASEDIR}/src/libpng/pngpriv.h"
+apply_pngpriv_fp_h_apple_sdk() {
+  # libpng ≤1.6.x: TARGET_OS_MAC is true on iOS, so the legacy branch includes <fp.h>,
+  # which Apple SDKs no longer ship (fatal: 'fp.h' file not found). Same pattern can
+  # appear in any vendored pngpriv.h under src/.
   local patch="${SPM_PATCH_ROOT}/patches/ffmpeg-kit-libpng-pngpriv-fp-h.patch"
-  [[ -f "${hdr}" ]] || return 0
-  if ! grep -Fq 'defined(THINK_C) || defined(__SC__) || defined(TARGET_OS_MAC)' "${hdr}"; then
-    return 0
-  fi
+  local needle='defined(THINK_C) || defined(__SC__) || defined(TARGET_OS_MAC)'
+  local hdr
+  while IFS= read -r -d '' hdr; do
+    grep -Fq "${needle}" "${hdr}" || continue
 
-  echo "Applying libpng pngpriv.h fp.h / TARGET_OS_MAC fix (Apple SDKs)..."
-  if [[ -f "${patch}" ]] && ( cd "${BASEDIR}" && patch -p1 --fuzz=2 < "${patch}" ); then
-    return 0
-  fi
+    local rel="${hdr#"${BASEDIR}/"}"
+    echo "Applying pngpriv.h TARGET_OS_MAC / <fp.h> fix (Apple SDKs): ${rel}"
 
-  echo "patch(1) did not apply; using perl fallback for libpng pngpriv.h."
-  perl -i -pe 's/defined\(THINK_C\) \|\| defined\(__SC__\) \|\| defined\(TARGET_OS_MAC\)/defined(THINK_C) || defined(__SC__)/' "${hdr}"
-  if grep -Fq 'defined(THINK_C) || defined(__SC__) || defined(TARGET_OS_MAC)' "${hdr}"; then
-    echo "ERROR: could not fix ${hdr} (TARGET_OS_MAC / fp.h)" >&2
-    return 1
-  fi
+    local patched=0
+    if [[ "${rel}" == "src/libpng/pngpriv.h" ]] && [[ -f "${patch}" ]] && ( cd "${BASEDIR}" && patch -p1 --fuzz=2 < "${patch}" ); then
+      patched=1
+    fi
+    if [[ "${patched}" -eq 0 ]] && grep -Fq "${needle}" "${hdr}"; then
+      perl -i -pe 's/defined\(THINK_C\) \|\| defined\(__SC__\) \|\| defined\(TARGET_OS_MAC\)/defined(THINK_C) || defined(__SC__)/' "${hdr}"
+    fi
+
+    if grep -Fq "${needle}" "${hdr}"; then
+      echo "ERROR: could not fix ${hdr} (TARGET_OS_MAC / fp.h)" >&2
+      return 1
+    fi
+  done < <(find "${BASEDIR}/src" -name pngpriv.h -print0 2>/dev/null)
+
   return 0
 }
 
@@ -340,5 +346,5 @@ apply_libsndfile_cmake
 apply_sdl_cmake
 apply_jpeg_cmake
 apply_libpng_cmake
-apply_libpng_pngpriv_fp_h
+apply_pngpriv_fp_h_apple_sdk
 apply_tiff_cmake
