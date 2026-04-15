@@ -62,31 +62,30 @@ if [ -f "${X265_CMAKE_PATCH}" ] && [ -f tools/patch/cmake/x265/CMakeLists.txt ];
   fi
 fi
 
-# shine: l3mdct.h prototype fix for Clang -std=gnu23. On CI, src/shine appears only AFTER
-# downloaded_library_sources inside ios/tvos/macos.sh — inject a hook there (idempotent).
-# See patches/ffmpeg-kit-shine-l3mdct-h.patch and patches/spm-apply-shine-l3mdct.sh
-inject_spm_shine_post_download_hook() {
+# C23 / GNU23 fixes for third-party sources that appear only after downloaded_library_sources
+# (shine l3mdct.h, xvid encoder.h). Injected into ios/tvos/macos.sh — idempotent.
+# See patches/spm-apply-after-download.sh
+inject_spm_post_download_hook() {
   local plat_script="$1"
-  local marker='# ffmpeg-kit-spm: post-download shine l3mdct (GNU C23)'
   [[ -f "${plat_script}" ]] || return 0
-  if grep -qF "${marker}" "${plat_script}"; then
+  if grep -q 'ffmpeg-kit-spm: post-download' "${plat_script}"; then
     return 0
   fi
   python3 - "${plat_script}" <<'PY' || exit 1
 import sys
 path = sys.argv[1]
-marker = "# ffmpeg-kit-spm: post-download shine l3mdct (GNU C23)"
+marker = "# ffmpeg-kit-spm: post-download C patches (shine, xvid, -std=gnu23)"
 with open(path) as f:
     content = f.read()
-if marker in content:
+if "ffmpeg-kit-spm: post-download" in content:
     sys.exit(0)
 needle = 'downloaded_library_sources "${ENABLED_LIBRARIES[@]}"\n'
 if needle not in content:
     sys.stderr.write(f"inject: pattern not found in {path}\n")
     sys.exit(1)
 hook = marker + '''
-if [[ -n "${SPM_PATCH_ROOT:-}" ]] && [[ -f "${SPM_PATCH_ROOT}/patches/spm-apply-shine-l3mdct.sh" ]]; then
-  SPM_PATCH_ROOT="${SPM_PATCH_ROOT}" BASEDIR="${BASEDIR}" bash "${SPM_PATCH_ROOT}/patches/spm-apply-shine-l3mdct.sh" || exit 1
+if [[ -n "${SPM_PATCH_ROOT:-}" ]] && [[ -f "${SPM_PATCH_ROOT}/patches/spm-apply-after-download.sh" ]]; then
+  SPM_PATCH_ROOT="${SPM_PATCH_ROOT}" BASEDIR="${BASEDIR}" bash "${SPM_PATCH_ROOT}/patches/spm-apply-after-download.sh" || exit 1
 fi
 
 '''
@@ -95,12 +94,12 @@ with open(path, "w") as f:
 PY
 }
 for _spm_plat in ios tvos macos; do
-  inject_spm_shine_post_download_hook "${WORK_DIR}/${_spm_plat}.sh"
+  inject_spm_post_download_hook "${WORK_DIR}/${_spm_plat}.sh"
 done
 
-# Same fix as post-download hook (patch + CRLF + perl fallback); only runs if src/shine exists early.
-if [[ -f src/shine/src/lib/l3mdct.h ]]; then
-  BASEDIR="${WORK_DIR}" SPM_PATCH_ROOT="${PACKAGE_ROOT}" bash "${PACKAGE_ROOT}/patches/spm-apply-shine-l3mdct.sh" || exit 1
+# Same patches when trees exist before platform scripts (local partial trees).
+if [[ -f src/shine/src/lib/l3mdct.h ]] || [[ -f src/xvidcore/xvidcore/src/encoder.h ]]; then
+  BASEDIR="${WORK_DIR}" SPM_PATCH_ROOT="${PACKAGE_ROOT}" bash "${PACKAGE_ROOT}/patches/spm-apply-after-download.sh" || exit 1
 fi
 
 echo "Install build dependencies..."
