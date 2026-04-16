@@ -82,6 +82,47 @@ PY
   return 0
 }
 
+apply_gnutls_configure_ac_gettext() {
+  # Newer gettext/autopoint rejects duplicate AM_GNU_GETTEXT_REQUIRE_VERSION; AM_GNU_GETTEXT_VERSION
+  # already implies it. Upstream gnutls 3.7.x still wraps REQUIRE_VERSION in m4_ifdef → autopoint: Stop.
+  local ac="${BASEDIR}/src/gnutls/configure.ac"
+  local patch="${SPM_PATCH_ROOT}/patches/ffmpeg-kit-gnutls-configure-ac-gettext.patch"
+  [[ -f "${ac}" ]] || return 0
+  if ! grep -q 'm4_ifdef(\[AM_GNU_GETTEXT_REQUIRE_VERSION\]' "${ac}" 2>/dev/null; then
+    return 0
+  fi
+
+  echo "Applying gnutls configure.ac gettext/autopoint fix (duplicate AM_GNU_GETTEXT_REQUIRE_VERSION)..."
+  if [[ -f "${patch}" ]] && ( cd "${BASEDIR}" && patch -p1 --fuzz=2 < "${patch}" ); then
+    return 0
+  fi
+
+  echo "patch(1) did not apply; using Python fallback for gnutls configure.ac."
+  python3 - "${ac}" <<'PY' || return 1
+import sys
+from pathlib import Path
+p = Path(sys.argv[1])
+t = p.read_text()
+old = (
+    "m4_ifdef([AM_GNU_GETTEXT_REQUIRE_VERSION],[\n"
+    "AM_GNU_GETTEXT_REQUIRE_VERSION([0.19])\n"
+    "])\n"
+)
+if old not in t:
+    old = old.replace("\n", "\r\n")
+if old not in t:
+    sys.stderr.write("gnutls gettext fallback: macro block not found\n")
+    sys.exit(1)
+p.write_text(t.replace(old, "", 1))
+PY
+
+  if grep -q 'm4_ifdef(\[AM_GNU_GETTEXT_REQUIRE_VERSION\]' "${ac}"; then
+    echo "ERROR: could not remove duplicate gettext macro block in ${ac}" >&2
+    return 1
+  fi
+  return 0
+}
+
 apply_libvidstab_cmake() {
   local cm="${BASEDIR}/src/libvidstab/CMakeLists.txt"
   local patch="${SPM_PATCH_ROOT}/patches/ffmpeg-kit-libvidstab-cmake.patch"
@@ -362,6 +403,7 @@ apply_pngpriv_fp_h_apple_sdk() {
 
 apply_shine_l3mdct
 apply_xvid_encoder_c23_bool
+apply_gnutls_configure_ac_gettext
 apply_libvidstab_cmake
 apply_snappy_cmake
 apply_chromaprint_cmake

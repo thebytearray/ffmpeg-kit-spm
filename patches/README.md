@@ -11,6 +11,7 @@ Applied automatically after ffmpeg-kit downloads sources (`spm-apply-after-downl
 | `ffmpeg-kit-libsamplerate-cmake.patch` | CMake 4.x: lower bound in `3.x..3.y` range |
 | `ffmpeg-kit-libsndfile-cmake.patch` | CMake 4.x: same pattern as libsamplerate |
 | `ffmpeg-kit-libvidstab-cmake.patch` | CMake 4.x: vid.stab |
+| `ffmpeg-kit-gnutls-configure-ac-gettext.patch` | gettext/autopoint: duplicate `AM_GNU_GETTEXT_REQUIRE_VERSION` in gnutls `configure.ac` |
 | `ffmpeg-kit-sdl-cmake.patch` | CMake 4.x: SDL (alternate CMake path) |
 | `ffmpeg-kit-shine-l3mdct-h.patch` | GNU C23: shine `l3mdct.h` prototype |
 | `ffmpeg-kit-snappy-cmake.patch` | CMake 4.x: snappy |
