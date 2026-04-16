@@ -143,6 +143,10 @@ fi
 
 GPL_BUILD_FLAGS="-x --full --enable-gpl"
 
+# tvOS: bundled OpenSSL is not supported (scripts/run-apple.sh exits 200). SRT depends on that OpenSSL
+# build, so disable both; TLS for FFmpeg remains via GnuTLS. iOS/macOS keep full + OpenSSL + SRT.
+TVOS_GPL_BUILD_FLAGS="${GPL_BUILD_FLAGS} --disable-lib-openssl --disable-lib-srt"
+
 # Intel iOS/tvOS simulator (x86_64): x265 and other CMake deps often fail pkg-config for FFmpeg on CI
 # (see build.log: "ERROR: x265 not found using pkg-config" on the x86-64 pass). Apple Silicon hosts
 # primarily use arm64-simulator; disable this slice unless opted in.
@@ -152,11 +156,11 @@ if [[ -z "${SPM_DISABLE_INTEL_SIM}" && "${CI:-}" == "true" ]]; then
   SPM_DISABLE_INTEL_SIM=1
 fi
 IOS_FLAGS="${GPL_BUILD_FLAGS}"
-TVOS_FLAGS="${GPL_BUILD_FLAGS}"
+TVOS_FLAGS="${TVOS_GPL_BUILD_FLAGS}"
 if [[ "${SPM_DISABLE_INTEL_SIM}" == "1" ]]; then
   echo "SPM_DISABLE_INTEL_SIM=1: adding --disable-x86-64 for ios.sh and tvos.sh (Intel simulator slice)."
   IOS_FLAGS="${GPL_BUILD_FLAGS} --disable-x86-64"
-  TVOS_FLAGS="${GPL_BUILD_FLAGS} --disable-x86-64"
+  TVOS_FLAGS="${TVOS_GPL_BUILD_FLAGS} --disable-x86-64"
 fi
 
 echo "Building for iOS..."
