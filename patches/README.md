@@ -1,6 +1,6 @@
 # Patches
 
-Applied automatically after ffmpeg-kit downloads sources (`spm-apply-after-download.sh`) or at checkout (`ffmpeg-kit-x265-cmake.patch` via `scripts/build/ffmpeg-kit-build.sh`).
+Applied automatically after ffmpeg-kit downloads sources (`spm-apply-after-download.sh`) or at checkout (`ffmpeg-kit-x265-cmake.patch` and `ffmpeg-kit-ffmpeg-sh-gnutls-openssl.patch` via `scripts/build/ffmpeg-kit-build.sh`).
 
 | File | Purpose |
 |------|---------|
@@ -11,6 +11,7 @@ Applied automatically after ffmpeg-kit downloads sources (`spm-apply-after-downl
 | `ffmpeg-kit-libsamplerate-cmake.patch` | CMake 4.x: lower bound in `3.x..3.y` range |
 | `ffmpeg-kit-libsndfile-cmake.patch` | CMake 4.x: same pattern as libsamplerate |
 | `ffmpeg-kit-libvidstab-cmake.patch` | CMake 4.x: vid.stab |
+| `ffmpeg-kit-ffmpeg-sh-gnutls-openssl.patch` | FFmpeg configure: drop `--enable-openssl` when `--enable-gnutls` (mutual exclusion; libsrt still uses OpenSSL via deps) |
 | `ffmpeg-kit-gnutls-configure-ac-gettext.patch` | gettext/autopoint: duplicate `AM_GNU_GETTEXT_REQUIRE_VERSION` in gnutls `configure.ac` |
 | `ffmpeg-kit-sdl-cmake.patch` | CMake 4.x: SDL (alternate CMake path) |
 | `ffmpeg-kit-shine-l3mdct-h.patch` | GNU C23: shine `l3mdct.h` prototype |

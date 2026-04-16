@@ -47,6 +47,14 @@ if [ -f "${X265_CMAKE_PATCH}" ] && [ -f tools/patch/cmake/x265/CMakeLists.txt ];
   fi
 fi
 
+FFMPEG_GNUTLS_OPENSSL_PATCH="${PACKAGE_ROOT}/patches/ffmpeg-kit-ffmpeg-sh-gnutls-openssl.patch"
+if [ -f "${FFMPEG_GNUTLS_OPENSSL_PATCH}" ] && [ -f scripts/apple/ffmpeg.sh ]; then
+  if ! grep -q 'ffmpeg-kit-spm: gnutls/openssl mutex' scripts/apple/ffmpeg.sh; then
+    echo "Applying FFmpeg scripts/apple/ffmpeg.sh gnutls+openssl mutex patch..."
+    patch -p1 --fuzz=0 < "${FFMPEG_GNUTLS_OPENSSL_PATCH}" || exit 1
+  fi
+fi
+
 inject_spm_post_download_hook() {
   local plat_script="$1"
   [[ -f "${plat_script}" ]] || return 0
