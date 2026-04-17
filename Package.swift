@@ -6,7 +6,7 @@ import PackageDescription
 let release = "v1.0.0"
 
 // SHA-256 of each binary zip (not git SHAs). Recomputed by ./build.sh when you zip prebuilt/*.xcframework.
-let frameworks = ["ffmpegkit": "eb3fa0a08fa7477ab38a8c43af7061e257f623ee58818f397f2db9aba31ef335", "libavcodec": "10ff17871015a75a83e1d9572d159b3752d47d78a94561ad14805a67b2660684", "libavdevice": "3dad9b09ba13553e1be34df5ce266a7b2b69c193e15eae3e6f5d5403c34f465a", "libavfilter": "17159b2cc5a91e7a47b9650f55f55eded9943745b880c90a2a7c4c6ac901abb4", "libavformat": "ebc5e8ae76a4f5a47a3141abbad562a64a76c4d47d9460ecbcfab84f20487179", "libavutil": "3b9f6a744ea0c2a5c3b571afac3956616efddfada67b77229830ce0c1c8336d7", "libswresample": "514647ce7c334dbae57c8fa0892130d4d19bf11b26acac85d750c5842a54e2c7", "libswscale": "6a93db66a432f1daf38080a5eaff0de93eecc11ffa0d709e07637dc8804fd1f0"]
+let frameworks = ["ffmpegkit": "f3f97ee32d86d74b80394b7823265f69126bca694614dca169317a945e329052", "libavcodec": "a79b323314b532ec8dac339321329b0769a9a4c83076b6889e5d14eae148e660", "libavdevice": "a1dc192c5c2ea072285d4ba6d7c3411015b46b45ee2aa7928e833ff69110c77a", "libavfilter": "f2b807ab868ae0e7af4650b868bfbe40beb56593a2d56e0abc1a3b359ede0344", "libavformat": "db881f73bca94631b7732c7ddaa3f77b26fb73cd4489a73fae4cb40b8fed52bf", "libavutil": "7a2c4d867f0583a73eab803809462d39ba0ce6325fecb6a464cd08d817511e2c", "libswresample": "6574f6b47f6f976397f8de4ce2fcb5216e4aff5bf51022b8b193c62af22029b5", "libswscale": "a271f84cdffdda7b0166af91f16d137c02e91d3585e3f7adddcd02d56a28276b"]
 
 func xcframework(_ package: Dictionary<String, String>.Element) -> Target {
     let url = "https://github.com/codewithtamim/ffmpeg-kit-spm/releases/download/\(release)/\(package.key).xcframework.zip"
