@@ -46,7 +46,7 @@ jobs:
         run: echo "export DEVELOPER_DIR=$(xcode-select -p)" > ~/.xcode.for.ffmpeg.kit.sh
       - name: Install dependencies
         run: |
-          BREW_DEPS=(autoconf automake libtool pkg-config curl git doxygen nasm cmake gcc gperf texinfo yasm bison autogen wget gettext meson ninja ragel groff gtk-doc docbook docbook-xsl libtasn1 gh)
+          BREW_DEPS=(autoconf automake libtool pkg-config curl git doxygen nasm cmake gcc gperf texinfo yasm bison autogen wget gettext meson ninja ragel groff gtk-doc docbook docbook-xsl libtasn1)
           BREW_MISSING=()
           for p in "${BREW_DEPS[@]}"; do
             brew list --formula "$p" &>/dev/null || BREW_MISSING+=("$p")
@@ -54,12 +54,23 @@ jobs:
           if [[ ${#BREW_MISSING[@]} -gt 0 ]]; then
             brew install --overwrite "${BREW_MISSING[@]}"
           fi
-      - name: Build and publish
+      - name: Build, commit, tag, and push
         env:
           CI: true
           FFMPEG_KIT_TAG: ${{ inputs.tag }}
           FFMPEG_KIT_GIT_REF: ${{ inputs.ffmpeg_kit_ref }}
+          # Release assets are published by the next step (softprops/action-gh-release), not the gh CLI.
+          SPM_ACTION_RELEASE: "1"
         run: ./build.sh
+      - name: Publish GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ inputs.tag }}
+          name: FFmpegKit SPM ${{ inputs.tag }}
+          generate_release_notes: true
+          fail_on_unmatched_files: true
+          files: |
+            .tmp/ffmpeg-kit/prebuilt/bundle-apple-xcframework/*.zip
       - name: FFmpeg-Kit build.log (last 100 lines on failure)
         if: failure()
         run: |

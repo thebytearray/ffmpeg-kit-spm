@@ -55,13 +55,14 @@ Environment variables:
 | `FFMPEG_KIT_REPO` | `https://github.com/arthenica/ffmpeg-kit` | Clone URL for ffmpeg-kit |
 | `WORK_DIR` | `<repo>/.tmp/ffmpeg-kit` | Clone and build tree |
 | `SPM_SKIP_RELEASE` | unset | Set to `1` to skip git and gh release steps after a successful build |
+| `SPM_ACTION_RELEASE` | unset | Set to `1` to stop after `git push` and skip the `gh` CLI (used by the GitHub Actions workflow so [softprops/action-gh-release](https://github.com/softprops/action-gh-release) can create the release and upload zips) |
 | `SPM_DISABLE_INTEL_SIM` | `1` when `CI=true`, else unset | Adds `--disable-x86-64` for **iOS** and **tvOS** (Intel simulator) and **macOS** (Intel) to avoid common `x265`/pkg-config failures on x86_64 CI builds. Set to `0` for a full multi-arch build (including macOS universal). |
 
 More detail: [`scripts/README.md`](scripts/README.md). Patch index: [`patches/README.md`](patches/README.md).
 
 ## Publishing via GitHub Actions
 
-The workflow [`.github/workflows/build-spm-release.yml`](.github/workflows/build-spm-release.yml) runs on `workflow_dispatch` (manual). It checks out this repo, caches Homebrew where possible, installs the same dependency set as local builds, then runs `./build.sh` with credentials available for push and release.
+The workflow [`.github/workflows/build-spm-release.yml`](.github/workflows/build-spm-release.yml) runs on `workflow_dispatch` (manual). It checks out this repo, caches Homebrew where possible, installs the same dependency set as local builds, then runs `./build.sh` with `SPM_ACTION_RELEASE=1` (commit, tag, push only). A follow-up step uses [softprops/action-gh-release](https://github.com/softprops/action-gh-release) to create the GitHub release and attach the XCFramework `.zip` files from `.tmp/ffmpeg-kit/prebuilt/bundle-apple-xcframework/`.
 
 ### How to run it
 
@@ -71,7 +72,7 @@ The workflow [`.github/workflows/build-spm-release.yml`](.github/workflows/build
 
 The job sets `CI=true`, `FFMPEG_KIT_TAG`, and `FFMPEG_KIT_GIT_REF`, then runs `./build.sh`. On failure it prints the last 100 lines of `.tmp/ffmpeg-kit/build.log`.
 
-Permissions: the job uses `contents: write` and the default `GITHUB_TOKEN` so the script can push commits and tags and manage the release, similar to a local `gh` release when you are authenticated.
+Permissions: the job uses `contents: write` and the default `GITHUB_TOKEN` so the checkout can push commits and tags, and the release action can create the release and upload assets. Local full publishes still use `gh release` after authentication.
 
 Forks: ensure Actions are enabled. If the default token cannot push to your default branch, configure a personal access token or repository rules as your organization requires.
 

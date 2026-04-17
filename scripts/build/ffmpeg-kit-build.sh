@@ -1,4 +1,4 @@
-# ffmpeg-kit clone, Apple XCFramework build, Package.swift update, optional gh release.
+# ffmpeg-kit clone, Apple XCFramework build, Package.swift update, optional GitHub release (gh CLI or SPM_ACTION_RELEASE).
 # Expects PACKAGE_ROOT (repo root). Sourced from ../build.sh.
 
 print_ffmpeg_kit_build_log_tail_on_failure() {
@@ -219,6 +219,12 @@ echo "Creating Tag..."
 git tag "$FFMPEG_KIT_TAG"
 git push
 git push origin --tags
+
+if [[ "${SPM_ACTION_RELEASE:-}" == "1" ]]; then
+  echo "SPM_ACTION_RELEASE=1: skipping gh CLI; create the GitHub release in the workflow (e.g. softprops/action-gh-release)."
+  echo "All done!"
+  exit 0
+fi
 
 echo "Creating Release..."
 gh release create -p -d "$FFMPEG_KIT_TAG" -t "FFmpegKit SPM $FFMPEG_KIT_TAG" --generate-notes --verify-tag
